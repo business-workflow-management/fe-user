@@ -1,7 +1,6 @@
 import { parseAllVariables, extractDataFlowVariables } from '../utils/variableParser';
 import { getService } from './serviceProvider';
 import { useConnectionsStore } from '../stores/connectionsStore';
-import { executeHttpRequest } from './httpService';
 
 class WorkflowExecutionService {
   constructor() {
@@ -11,7 +10,7 @@ class WorkflowExecutionService {
 
   /**
    * Execute a workflow by processing nodes in topological order
-   * @param {Object} project - The project containing nodes and edges
+   * @param {Object} project - The project containing nodes and dataFlowConnections
    * @param {Object} envVars - Environment variables for {{env.var}} resolution
    * @param {string} userId - The ID of the user executing the workflow
    * @returns {Object} Execution results with outputs and history
@@ -20,10 +19,10 @@ class WorkflowExecutionService {
     this.nodeOutputs = {};
     this.executionHistory = [];
     
-    const { nodes, edges } = project;
+    const { nodes, dataFlowConnections } = project;
     
     // Create adjacency list for topological sorting
-    const graph = this.buildDependencyGraph(nodes, edges);
+    const graph = this.buildDependencyGraph(nodes, dataFlowConnections);
     const executionOrder = this.topologicalSort(graph);
     
     console.log('Execution order:', executionOrder);
@@ -60,9 +59,9 @@ class WorkflowExecutionService {
   }
 
   /**
-   * Build dependency graph from nodes and edges
+   * Build dependency graph from nodes and data flow connections
    */
-  buildDependencyGraph(nodes, edges) {
+  buildDependencyGraph(nodes, dataFlowConnections) {
     const graph = {};
     
     // Initialize all nodes
@@ -70,11 +69,11 @@ class WorkflowExecutionService {
       graph[node.id] = { dependencies: [], dependents: [] };
     });
     
-    // Add edges
-    edges.forEach(edge => {
-      if (graph[edge.source] && graph[edge.target]) {
-        graph[edge.source].dependents.push(edge.target);
-        graph[edge.target].dependencies.push(edge.source);
+    // Add data flow connections
+    dataFlowConnections.forEach(connection => {
+      if (graph[connection.sourceNodeId] && graph[connection.targetNodeId]) {
+        graph[connection.sourceNodeId].dependents.push(connection.targetNodeId);
+        graph[connection.targetNodeId].dependencies.push(connection.sourceNodeId);
       }
     });
     
@@ -209,11 +208,11 @@ class WorkflowExecutionService {
    */
   validateProject(project) {
     const errors = [];
-    const { nodes, edges } = project;
+    const { nodes, dataFlowConnections } = project;
     
     // Check for circular dependencies
     try {
-      const graph = this.buildDependencyGraph(nodes, edges);
+      const graph = this.buildDependencyGraph(nodes, dataFlowConnections);
       this.topologicalSort(graph);
     } catch (error) {
       errors.push(error.message);
@@ -239,4 +238,5 @@ class WorkflowExecutionService {
   }
 }
 
-export default new WorkflowExecutionService(); 
+const workflowExecutionService = new WorkflowExecutionService();
+export default workflowExecutionService; 

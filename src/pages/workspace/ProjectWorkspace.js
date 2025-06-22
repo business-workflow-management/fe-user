@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { Button, Card, Modal } from '../../components/ui';
 import workflowExecutionService from '../../services/workflowExecutionService';
+import { dataFlowToReactFlowEdges, reactFlowEdgesToDataFlow } from '../../utils/dataFlowTransformer';
 
 const nodeTypes = {
   custom: FlowNode,
@@ -42,7 +43,7 @@ const ProjectWorkspace = () => {
     getCurrentProjectByUserId,
     setCurrentProject, 
     updateProjectNodes, 
-    updateProjectEdges,
+    updateReactFlowEdges,
     addWorkflowHistory,
   } = useProjectStore();
   
@@ -76,7 +77,14 @@ const ProjectWorkspace = () => {
   useEffect(() => {
     if (currentProject) {
       setNodes(currentProject.nodes || []);
-      setEdges(currentProject.edges || []);
+      
+      // Use dataFlowConnections if available, otherwise fall back to legacy edges
+      if (currentProject.dataFlowConnections) {
+        const reactFlowEdges = dataFlowToReactFlowEdges(currentProject.dataFlowConnections);
+        setEdges(reactFlowEdges);
+      } else {
+        setEdges(currentProject.edges || []);
+      }
     }
   }, [currentProject, setNodes, setEdges]);
 
@@ -84,7 +92,7 @@ const ProjectWorkspace = () => {
     if (!currentProject || !user?.id) return;
     setIsSaving(true);
     await updateProjectNodes(user.id, currentProject.id, nodes);
-    await updateProjectEdges(user.id, currentProject.id, edges);
+    await updateReactFlowEdges(user.id, currentProject.id, edges);
     setTimeout(() => setIsSaving(false), 1500);
   };
 
@@ -162,7 +170,14 @@ const ProjectWorkspace = () => {
     setExecutionResults(null);
     
     try {
-      const projectWithCurrentData = { ...currentProject, nodes, edges };
+      // Convert React Flow edges back to data flow connections for execution
+      const dataFlowConnections = reactFlowEdgesToDataFlow(edges);
+      const projectWithCurrentData = { 
+        ...currentProject, 
+        nodes, 
+        dataFlowConnections 
+      };
+      
       const results = await workflowExecutionService.executeWorkflow(projectWithCurrentData, envVars, user.id);
       
       addWorkflowHistory(user.id, currentProject.id, {

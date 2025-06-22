@@ -1,33 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useProjectStore } from '../../stores/projectStore';
-import { useAuthStore } from '../../stores/authStore';
+import { format } from 'date-fns';
+import { toast } from 'react-hot-toast';
 import { 
   Plus, 
   Search, 
   Filter, 
-  MoreVertical, 
   Edit, 
-  Trash2, 
-  Play,
-  Calendar,
-  Clock
+  Play, 
+  Clock, 
+  Calendar, 
+  MoreVertical,
+  Trash2
 } from 'lucide-react';
+import { useProjectStore } from '../../stores/projectStore';
+import { useAuthStore } from '../../stores/authStore';
+import Layout from '../../components/layout/Layout';
 import { 
-  Button, 
-  Card, 
-  Modal, 
-  Input, 
   Container, 
-  Heading, 
-  Paragraph, 
+  Card, 
+  Button, 
+  Input, 
+  Modal, 
+  Space, 
   Flex, 
   Grid, 
-  Space, 
+  Heading, 
+  Paragraph 
 } from '../../components/ui';
-import { format } from 'date-fns';
-import toast from 'react-hot-toast';
-import Layout from '../../components/layout/Layout';
 
 const ProjectManagement = () => {
   const navigate = useNavigate();
@@ -70,10 +70,31 @@ const ProjectManagement = () => {
       return;
     }
 
-    createProject(newProject);
+    if (!user?.id) {
+      toast.error('User not authenticated');
+      return;
+    }
+
+    console.log('Creating project:', { userId: user.id, projectData: newProject });
+
+    // Create the project and get the created project
+    const createdProject = createProject(user.id, newProject);
+    
+    // Reset form and close modal
     setNewProject({ name: '', description: '' });
     setShowCreateModal(false);
+    
+    // Show success message
     toast.success('Project created successfully!');
+    
+    // Redirect to workspace immediately
+    if (createdProject) {
+      console.log('Redirecting to workspace:', `/workspace/${createdProject.id}`);
+      navigate(`/workspace/${createdProject.id}`);
+    } else {
+      console.error('Failed to create project');
+      toast.error('Failed to create project. Please try again.');
+    }
   };
 
   const handleDeleteProject = () => {

@@ -1,5 +1,11 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { 
+  dataFlowToReactFlowEdges, 
+  reactFlowEdgesToDataFlow,
+  createDataFlowConnection,
+  updateNodeIdInConnections
+} from '../utils/dataFlowTransformer';
 
 const useProjectStore = create(
   persist(
@@ -106,16 +112,45 @@ const useProjectStore = create(
                 position: { x: 550, y: 450 } 
               },
             ],
+            // New data flow connections structure
+            dataFlowConnections: [
+              {
+                id: 'conn_1_2',
+                sourceNodeId: 'node-1',
+                targetNodeId: 'node-2',
+                label: 'Customer data to ad generation'
+              },
+              {
+                id: 'conn_1_3',
+                sourceNodeId: 'node-1',
+                targetNodeId: 'node-3',
+                label: 'Customer data to Facebook post'
+              },
+              {
+                id: 'conn_2_4',
+                sourceNodeId: 'node-2',
+                targetNodeId: 'node-4',
+                label: 'Ad copy to team notification'
+              },
+              {
+                id: 'conn_3_4',
+                sourceNodeId: 'node-3',
+                targetNodeId: 'node-4',
+                label: 'Facebook post to team notification'
+              },
+              {
+                id: 'conn_1_5',
+                sourceNodeId: 'node-1',
+                targetNodeId: 'node-5',
+                label: 'Customer data to campaign ID'
+              }
+            ],
+            // Legacy edges for backward compatibility (will be removed in future)
             edges: [
-              // One-to-many: node-1 connects to node-2 and node-3
               { id: 'e1-2', source: 'node-1', target: 'node-2', sourceHandle: 'right', targetHandle: 'left', markerEnd: { type: 'arrowclosed' } },
               { id: 'e1-3', source: 'node-1', target: 'node-3', sourceHandle: 'right', targetHandle: 'left', markerEnd: { type: 'arrowclosed' } },
-              
-              // Many-to-one: node-4 receives from node-2 and node-3
               { id: 'e2-4', source: 'node-2', target: 'node-4', sourceHandle: 'right', targetHandle: 'left', markerEnd: { type: 'arrowclosed' } },
               { id: 'e3-4', source: 'node-3', target: 'node-4', sourceHandle: 'right', targetHandle: 'left', markerEnd: { type: 'arrowclosed' } },
-              
-              // Another branch
               { id: 'e1-5', source: 'node-1', target: 'node-5', sourceHandle: 'right', targetHandle: 'left', markerEnd: { type: 'arrowclosed' } },
             ],
             history: [],
@@ -158,6 +193,14 @@ const useProjectStore = create(
                 position: { x: 350, y: 100 } 
               },
             ],
+            dataFlowConnections: [
+              {
+                id: 'conn_n1_n2',
+                sourceNodeId: 'n1',
+                targetNodeId: 'n2',
+                label: 'News data to newsletter generation'
+              }
+            ],
             edges: [{ id: 'en1-n2', source: 'n1', target: 'n2', markerEnd: { type: 'arrowclosed' } }],
             history: [],
           },
@@ -171,7 +214,8 @@ const useProjectStore = create(
         }));
       },
       
-      createProject: (userId, projectData) =>
+      createProject: (userId, projectData) => {
+        let createdProject = null;
         set((state) => {
           if (!userId) return state;
           const userProjects = state.projectsByUserId[userId] || [];
@@ -182,16 +226,20 @@ const useProjectStore = create(
             updatedAt: new Date().toISOString(),
             status: 'draft',
             nodes: [],
+            dataFlowConnections: [],
             edges: [],
             history: [],
           };
+          createdProject = newProject;
           return {
             projectsByUserId: {
               ...state.projectsByUserId,
               [userId]: [...userProjects, newProject],
             }
           };
-        }),
+        });
+        return createdProject;
+      },
       
       updateProject: (userId, updatedProject) =>
         set((state) => {
@@ -321,8 +369,206 @@ const useProjectStore = create(
       getWorkflowHistory: (userId, projectId) => {
         if (!userId) return [];
         const state = get();
-        const userProjects = state.projectsByUserId[userId] || [];
         return state.workflowHistory.filter((entry) => entry.projectId === projectId && entry.userId === userId);
+      },
+
+      // New data flow connection methods
+      updateProjectDataFlowConnections: (userId, projectId, dataFlowConnections) => {
+        return new Promise((resolve) => {
+          set((state) => {
+            if (!userId) {
+              resolve(null);
+              return state;
+            }
+            const userProjects = state.projectsByUserId[userId] || [];
+            let updatedProject;
+            const newProjects = userProjects.map((project) => {
+              if (project.id === projectId) {
+                updatedProject = { 
+                  ...project, 
+                  dataFlowConnections, 
+                  updatedAt: new Date().toISOString() 
+                };
+                return updatedProject;
+              }
+              return project;
+            });
+
+            resolve(updatedProject);
+            
+            const currentProj = state.currentProjectByUserId[userId];
+            if (currentProj?.id === projectId) {
+              return {
+                projectsByUserId: { ...state.projectsByUserId, [userId]: newProjects },
+                currentProjectByUserId: { ...state.currentProjectByUserId, [userId]: updatedProject },
+              };
+            }
+            return { projectsByUserId: { ...state.projectsByUserId, [userId]: newProjects } };
+          });
+        });
+      },
+
+      addDataFlowConnection: (userId, projectId, sourceNodeId, targetNodeId, options = {}) => {
+        return new Promise((resolve) => {
+          set((state) => {
+            if (!userId) {
+              resolve(null);
+              return state;
+            }
+            const userProjects = state.projectsByUserId[userId] || [];
+            let updatedProject;
+            const newProjects = userProjects.map((project) => {
+              if (project.id === projectId) {
+                const newConnection = createDataFlowConnection(sourceNodeId, targetNodeId, options);
+                const updatedConnections = [...(project.dataFlowConnections || []), newConnection];
+                updatedProject = { 
+                  ...project, 
+                  dataFlowConnections: updatedConnections, 
+                  updatedAt: new Date().toISOString() 
+                };
+                return updatedProject;
+              }
+              return project;
+            });
+
+            resolve(updatedProject);
+            
+            const currentProj = state.currentProjectByUserId[userId];
+            if (currentProj?.id === projectId) {
+              return {
+                projectsByUserId: { ...state.projectsByUserId, [userId]: newProjects },
+                currentProjectByUserId: { ...state.currentProjectByUserId, [userId]: updatedProject },
+              };
+            }
+            return { projectsByUserId: { ...state.projectsByUserId, [userId]: newProjects } };
+          });
+        });
+      },
+
+      removeDataFlowConnection: (userId, projectId, connectionId) => {
+        return new Promise((resolve) => {
+          set((state) => {
+            if (!userId) {
+              resolve(null);
+              return state;
+            }
+            const userProjects = state.projectsByUserId[userId] || [];
+            let updatedProject;
+            const newProjects = userProjects.map((project) => {
+              if (project.id === projectId) {
+                const updatedConnections = (project.dataFlowConnections || []).filter(
+                  conn => conn.id !== connectionId
+                );
+                updatedProject = { 
+                  ...project, 
+                  dataFlowConnections: updatedConnections, 
+                  updatedAt: new Date().toISOString() 
+                };
+                return updatedProject;
+              }
+              return project;
+            });
+
+            resolve(updatedProject);
+            
+            const currentProj = state.currentProjectByUserId[userId];
+            if (currentProj?.id === projectId) {
+              return {
+                projectsByUserId: { ...state.projectsByUserId, [userId]: newProjects },
+                currentProjectByUserId: { ...state.currentProjectByUserId, [userId]: updatedProject },
+              };
+            }
+            return { projectsByUserId: { ...state.projectsByUserId, [userId]: newProjects } };
+          });
+        });
+      },
+
+      updateNodeIdInDataFlow: (userId, projectId, oldNodeId, newNodeId) => {
+        return new Promise((resolve) => {
+          set((state) => {
+            if (!userId) {
+              resolve(null);
+              return state;
+            }
+            const userProjects = state.projectsByUserId[userId] || [];
+            let updatedProject;
+            const newProjects = userProjects.map((project) => {
+              if (project.id === projectId) {
+                const updatedConnections = updateNodeIdInConnections(
+                  project.dataFlowConnections || [], 
+                  oldNodeId, 
+                  newNodeId
+                );
+                updatedProject = { 
+                  ...project, 
+                  dataFlowConnections: updatedConnections, 
+                  updatedAt: new Date().toISOString() 
+                };
+                return updatedProject;
+              }
+              return project;
+            });
+
+            resolve(updatedProject);
+            
+            const currentProj = state.currentProjectByUserId[userId];
+            if (currentProj?.id === projectId) {
+              return {
+                projectsByUserId: { ...state.projectsByUserId, [userId]: newProjects },
+                currentProjectByUserId: { ...state.currentProjectByUserId, [userId]: updatedProject },
+              };
+            }
+            return { projectsByUserId: { ...state.projectsByUserId, [userId]: newProjects } };
+          });
+        });
+      },
+
+      // Transform data flow connections to React Flow edges for visualization
+      getReactFlowEdges: (userId, projectId) => {
+        const state = get();
+        const userProjects = state.projectsByUserId[userId] || [];
+        const project = userProjects.find(p => p.id === projectId);
+        if (!project) return [];
+        
+        return dataFlowToReactFlowEdges(project.dataFlowConnections || []);
+      },
+
+      // Update React Flow edges and sync back to data flow connections
+      updateReactFlowEdges: (userId, projectId, reactFlowEdges) => {
+        return new Promise((resolve) => {
+          set((state) => {
+            if (!userId) {
+              resolve(null);
+              return state;
+            }
+            const userProjects = state.projectsByUserId[userId] || [];
+            let updatedProject;
+            const newProjects = userProjects.map((project) => {
+              if (project.id === projectId) {
+                const dataFlowConnections = reactFlowEdgesToDataFlow(reactFlowEdges);
+                updatedProject = { 
+                  ...project, 
+                  dataFlowConnections,
+                  edges: reactFlowEdges, // Keep legacy edges for backward compatibility
+                  updatedAt: new Date().toISOString() 
+                };
+                return updatedProject;
+              }
+              return project;
+            });
+
+            resolve(updatedProject);
+            
+            const currentProj = state.currentProjectByUserId[userId];
+            if (currentProj?.id === projectId) {
+              return {
+                projectsByUserId: { ...state.projectsByUserId, [userId]: newProjects },
+                currentProjectByUserId: { ...state.currentProjectByUserId, [userId]: updatedProject },
+              };
+            }
+            return { projectsByUserId: { ...state.projectsByUserId, [userId]: newProjects } };
+          });
+        });
       },
     }),
     {

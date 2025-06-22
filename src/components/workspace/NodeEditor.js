@@ -6,6 +6,7 @@ import HighlightableInput from '../ui/HighlightableInput';
 import DataFlowHelper from './DataFlowHelper';
 import { useProjectStore } from '../../stores/projectStore';
 import { useConnectionsStore } from '../../stores/connectionsStore';
+import { useAuthStore } from '../../stores/authStore';
 import { extractDataFlowVariables } from '../../utils/variableParser';
 
 const NodeEditor = ({ node, onUpdate, onClose, onUpdateNodeId }) => {
@@ -14,11 +15,17 @@ const NodeEditor = ({ node, onUpdate, onClose, onUpdateNodeId }) => {
   const [nodeId, setNodeId] = useState('');
   const [showIdWarning, setShowIdWarning] = useState(false);
   const { currentProject } = useProjectStore();
-  const { connections, initializeMockConnections } = useConnectionsStore();
+  const { getConnectionsByUserId, initializeMockConnections } = useConnectionsStore();
+  const { user } = useAuthStore();
+
+  // Get connections for the current user
+  const connections = getConnectionsByUserId(user?.id) || [];
 
   useEffect(() => {
-    initializeMockConnections();
-  }, [initializeMockConnections]);
+    if (user?.id) {
+      initializeMockConnections(user.id);
+    }
+  }, [user?.id, initializeMockConnections]);
 
   useEffect(() => {
     if (node) {
@@ -96,7 +103,8 @@ const NodeEditor = ({ node, onUpdate, onClose, onUpdateNodeId }) => {
   };
 
   const renderFields = () => {
-    const relevantConnections = connections.filter(c => c.type === formData.type);
+    // Add null check for connections to prevent filter error
+    const relevantConnections = (connections || []).filter(c => c.type === formData.type);
     
     switch (formData.type) {
       case 'google-sheets':
