@@ -1,81 +1,62 @@
 import axios from 'axios';
+import { useAuthStore } from '../stores/authStore';
+
+// Set your API gateway base URL here
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+
+// Create a central axios instance for BE integration
+export const api = axios.create({
+  baseURL: API_BASE_URL,
+});
+
+// Add a request interceptor to inject the access token for authenticated requests
+api.interceptors.request.use(
+  (config) => {
+    const token = useAuthStore.getState().token;
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Helper to convert snake_case keys to camelCase
+function toCamelCase(obj) {
+  if (Array.isArray(obj)) {
+    return obj.map(toCamelCase);
+  } else if (obj && typeof obj === 'object') {
+    return Object.keys(obj).reduce((acc, key) => {
+      const camelKey = key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+      acc[camelKey] = toCamelCase(obj[key]);
+      return acc;
+    }, {});
+  }
+  return obj;
+}
+
+// Add a response interceptor to unwrap the data field and convert keys to camelCase
+api.interceptors.response.use(
+  (response) => {
+    let data = response.data && typeof response.data === 'object' && 'data' in response.data
+      ? response.data.data
+      : response.data;
+    return toCamelCase(data);
+  },
+  (error) => Promise.reject(error)
+);
 
 /**
- * Executes an HTTP request.
- * Includes a real, but commented-out, implementation and an active mock.
- * @param {object} data - The node data, including url, method, headers, and body.
+ * Executes an HTTP request using the central axios instance for BE integration.
+ * @param {object} config - Axios request config (method, url, data, params, etc.)
  * @returns {Promise<object>}
  */
-export const executeHttpRequest = async (data) => {
-  const { url, method = 'GET', headers: headersStr, body: bodyStr } = data;
-
-  if (!url) {
-    throw new Error('Missing required parameter: url.');
-  }
-
-  // REAL IMPLEMENTATION
+export const executeApiRequest = async (config) => {
   try {
-    let headers = {};
-    if (headersStr) {
-      try {
-        headers = JSON.parse(headersStr);
-      } catch (e) {
-        throw new Error('Headers field is not valid JSON.');
-      }
-    }
-
-    let body = {};
-    if (bodyStr) {
-      try {
-        body = JSON.parse(bodyStr);
-      } catch (e) {
-        throw new Error('Body field is not valid JSON.');
-      }
-    }
-
-    const config = {
-      method,
-      url,
-      headers,
-      ...((method === 'POST' || method === 'PUT') && { data: body }),
-    };
-
-    const response = await axios(config);
-    return { status: response.status, data: response.data, headers: response.headers };
+    const data = await api(config);
+    return data;
   } catch (error) {
-    console.error('HTTP Request Error:', error.response?.data || error.message);
-    throw error.response?.data || new Error('Failed to execute HTTP request');
+    console.error('API Request Error:', error.response?.data || error.message);
+    throw error.response?.data || new Error('Failed to execute API request');
   }
-
-  /*
-  // MOCK IMPLEMENTATION
-  console.log(`Mocking HTTP ${method} request to:`, url);
-  await new Promise(resolve => setTimeout(resolve, 500));
-
-  if (method === 'POST' || method === 'PUT') {
-    console.log(`Mock ${method} request received with body:`, bodyStr);
-    return {
-      status: method === 'POST' ? 201 : 200,
-      data: { message: `Resource ${method === 'POST' ? 'created' : 'updated'} successfully (mock)`, receivedBody: bodyStr },
-    };
-  }
-
-  if (method === 'DELETE') {
-    return {
-      status: 200,
-      data: { message: 'Resource deleted successfully (mock)' },
-    };
-  }
-
-  return {
-    status: 200,
-    data: {
-      articles: [
-        { title: 'Tech Breakthrough (Mock)', content: 'New AI technology revolutionizes industry' },
-        { title: 'Market Update (Mock)', content: 'Stocks reach new highs' }
-      ]
-    },
-    headers: { 'content-type': 'application/json' }
-  };
-  */
 }; 

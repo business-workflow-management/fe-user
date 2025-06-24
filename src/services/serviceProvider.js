@@ -4,7 +4,7 @@ import { sendTelegramMessage } from './telegramService';
 import { postToInstagram } from './instagramService';
 import { postToReddit } from './redditService';
 import { createChatCompletion } from './chatGPTService';
-import { executeHttpRequest } from './httpService';
+import { executeHttpNodeRequest } from './httpNodeService';
 
 export const serviceProviderMap = {
   'facebook': { fn: postToFacebookPage, displayName: 'Facebook', requiresConnection: true },
@@ -13,7 +13,7 @@ export const serviceProviderMap = {
   'instagram': { fn: postToInstagram, displayName: 'Instagram', requiresConnection: true },
   'reddit': { fn: postToReddit, displayName: 'Reddit', requiresConnection: true },
   'chatgpt': { fn: createChatCompletion, displayName: 'ChatGPT', requiresConnection: true },
-  'http-request': { fn: executeHttpRequest, displayName: 'HTTP Request', requiresConnection: false },
+  'http-request': { fn: executeHttpNodeRequest, displayName: 'HTTP Request', requiresConnection: false },
 };
 
 /**

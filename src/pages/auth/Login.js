@@ -55,9 +55,8 @@ const Login = () => {
     setLoading(true);
     
     try {
-      // Mock login - any email/password combination will work
       const result = await login(formData.email, formData.password);
-      
+      console.log('Login result:', result); // Debug log
       if (result.success) {
         toast.success('Login successful!');
         navigate('/projects');

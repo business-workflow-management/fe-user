@@ -1,17 +1,89 @@
-# Dependencies
+# Node modules
 node_modules/
+**/node_modules/
+
+# Build output
+dist/
+**/dist/
+build/
+**/build/
+
+# Logs
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
-
-# Production builds
-build/
-dist/
-out/
 
 # Environment variables
 .env
+.env.*
+**/.env
+**/.env.*
+
+# Prisma
+prisma/.env
+prisma/migrations/*/README.md
+**/prisma/.env
+**/prisma/migrations/*/README.md
+
+# Database
+*.sqlite
+*.db
+*.db-journal
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+
+# Test output and coverage
+coverage/
+**/coverage/
+.nyc_output/
+
+# Misc
+*.tgz
+*.gz
+*.zip
+*.bak
+*.tmp
+
+# Frontend
+fe-user/.next/
+fe-user/.cache/
+fe-user/.turbo/
+
+# Docker
+**/docker-compose.override.yml
+**/docker-compose.local.yml
+
+# Local scripts
+*.local.sh
+
+# Ignore generated Prisma client (if not checked in)
+**/node_modules/@prisma/client/
+**/node_modules/.prisma/
+
+# Ignore local data
+be/auth-data/
+be/project-data/
+
+# Ignore test artifacts
+be/test/*.out
+be/test/*.tmp
+
+# Production builds
+out/
+
+# Environment variables
 .env.local
 .env.development.local
 .env.test.local
@@ -25,13 +97,11 @@ out/
 *~
 
 # OS generated files
-.DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
 ehthumbs.db
-Thumbs.db
 
 # Logs
 logs
@@ -44,11 +114,7 @@ pids
 *.pid.lock
 
 # Coverage directory used by tools like istanbul
-coverage/
 *.lcov
-
-# nyc test coverage
-.nyc_output
 
 # Dependency directories
 jspm_packages/
@@ -100,17 +166,9 @@ jspm_packages/
 tmp/
 temp/
 
-# Local development files
-*.local
-
 # Backup files
 *.bak
 *.backup
-
-# Database files
-*.db
-*.sqlite
-*.sqlite3
 
 # Certificate files
 *.pem

@@ -77,14 +77,9 @@ const ProjectWorkspace = () => {
   useEffect(() => {
     if (currentProject) {
       setNodes(currentProject.nodes || []);
-      
-      // Use dataFlowConnections if available, otherwise fall back to legacy edges
-      if (currentProject.dataFlowConnections) {
-        const reactFlowEdges = dataFlowToReactFlowEdges(currentProject.dataFlowConnections);
-        setEdges(reactFlowEdges);
-      } else {
-        setEdges(currentProject.edges || []);
-      }
+      // Always use dataFlowConnections for edges
+      const reactFlowEdges = dataFlowToReactFlowEdges(currentProject.dataFlowConnections || []);
+      setEdges(reactFlowEdges);
     }
   }, [currentProject, setNodes, setEdges]);
 

@@ -36,7 +36,7 @@ const ProjectManagement = () => {
     getProjectsByUserId, 
     createProject, 
     deleteProject, 
-    initializeMockData 
+    fetchProjects 
   } = useProjectStore();
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -53,18 +53,18 @@ const ProjectManagement = () => {
 
   useEffect(() => {
     if (user?.id) {
-      initializeMockData(user.id);
+      fetchProjects(user.id);
     }
-  }, [user, initializeMockData]);
+  }, [user, fetchProjects]);
 
-  const filteredProjects = projects.filter(project => {
+  const filteredProjects = projects.filter(Boolean).filter(project => {
     const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          project.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === 'all' || project.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
 
-  const handleCreateProject = () => {
+  const handleCreateProject = async () => {
     if (!newProject.name.trim()) {
       toast.error('Project name is required');
       return;
@@ -78,7 +78,7 @@ const ProjectManagement = () => {
     console.log('Creating project:', { userId: user.id, projectData: newProject });
 
     // Create the project and get the created project
-    const createdProject = createProject(user.id, newProject);
+    const createdProject = await createProject(user.id, newProject);
     
     // Reset form and close modal
     setNewProject({ name: '', description: '' });
@@ -134,7 +134,7 @@ const ProjectManagement = () => {
 
   return (
     <Layout>
-      <Container>
+      <div className="px-8 w-full">
         <Space size="lg">
           {/* Header */}
           <Flex justify="between" align="center">
@@ -333,7 +333,7 @@ const ProjectManagement = () => {
             </Space>
           </Modal>
         </Space>
-      </Container>
+      </div>
     </Layout>
   );
 };

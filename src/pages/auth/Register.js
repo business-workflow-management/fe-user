@@ -227,9 +227,9 @@ const Register = () => {
         </Card>
 
         {/* Demo info */}
-        <Paragraph size="xs" color="secondary" align="center">
+        {/* <Paragraph size="xs" color="secondary" align="center">
           Demo: Registration will create a mock account
-        </Paragraph>
+        </Paragraph> */}
       </Space>
     </Container>
   );

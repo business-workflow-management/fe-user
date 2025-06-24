@@ -127,8 +127,7 @@ src/
       "condition": "optional-condition",
       "metadata": {}
     }
-  ],
-  "edges": [] // Legacy field for backward compatibility
+  ]
 }
 ```
 

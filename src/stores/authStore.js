@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import * as authService from '../services/authService';
+import { jwtDecode } from 'jwt-decode';
 
 const useAuthStore = create(
   persist(
@@ -9,57 +11,82 @@ const useAuthStore = create(
       isAuthenticated: false,
       
       login: async (email, password) => {
-        // Mock login - in real app, this would call the API
-        // const response = await authAPI.login(email, password);
-        
-        // Mock response
-        const mockUser = {
-          id: '1',
-          email: email,
-          name: 'John Doe',
-          avatar: 'https://via.placeholder.com/40',
-        };
-        
-        const mockToken = 'mock-jwt-token-' + Date.now();
-        
-        set({
-          user: mockUser,
-          token: mockToken,
-          isAuthenticated: true,
-        });
-        
-        return { success: true, user: mockUser };
+        try {
+          const data = await authService.login(email, password);
+          console.log('Login API response:', data);
+          let user = data.user;
+          if (!user && data.accessToken) {
+            try {
+              const decoded = jwtDecode(data.accessToken);
+              console.log('Decoded JWT:', decoded);
+              user = {
+                id: decoded.sub,
+                email: decoded.email,
+                name: decoded.name || decoded.username || '',
+                ...decoded
+              };
+              console.log('Mapped user:', user);
+            } catch (e) {
+              user = null;
+              console.error('JWT decode error:', e);
+            }
+          }
+          set({
+            user,
+            token: data.accessToken,
+            isAuthenticated: true,
+          });
+          return { success: true, user };
+        } catch (error) {
+          set({ user: null, token: null, isAuthenticated: false });
+          return { success: false, error };
+        }
       },
       
       register: async (name, email, password) => {
-        // Mock registration - in real app, this would call the API
-        // const response = await authAPI.register(name, email, password);
-        
-        // Mock response
-        const mockUser = {
-          id: '1',
-          email: email,
-          name: name,
-          avatar: 'https://via.placeholder.com/40',
-        };
-        
-        const mockToken = 'mock-jwt-token-' + Date.now();
-        
-        set({
-          user: mockUser,
-          token: mockToken,
-          isAuthenticated: true,
-        });
-        
-        return { success: true, user: mockUser };
+        try {
+          const data = await authService.register(name, email, password);
+          let user = data.user;
+          if (!user && data.accessToken) {
+            try {
+              const decoded = jwtDecode(data.accessToken);
+              console.log('Decoded JWT (register):', decoded);
+              user = {
+                id: decoded.sub,
+                email: decoded.email,
+                name: decoded.name || decoded.username || '',
+                ...decoded
+              };
+              console.log('Mapped user (register):', user);
+            } catch (e) {
+              user = null;
+              console.error('JWT decode error (register):', e);
+            }
+          }
+          set({
+            user,
+            token: data.accessToken,
+            isAuthenticated: true,
+          });
+          return { success: true, user };
+        } catch (error) {
+          set({ user: null, token: null, isAuthenticated: false });
+          return { success: false, error };
+        }
       },
       
-      logout: () => {
-        set({
-          user: null,
-          token: null,
-          isAuthenticated: false,
-        });
+      logout: async () => {
+        try {
+          await authService.logout();
+        } catch (e) {}
+        set({ user: null, token: null, isAuthenticated: false });
+      },
+      
+      fetchProfile: async () => {
+        try {
+          const data = await authService.getProfile();
+          set({ user: data.user });
+        } catch (e) {}
       },
       
       updateUser: (userData) => {
