@@ -29,6 +29,112 @@ import {
   Paragraph 
 } from '../../components/ui';
 
+// Project Templates
+const PROJECT_TEMPLATES = [
+  {
+    category: 'Marketing',
+    templates: [
+      {
+        id: 'marketing-1',
+        name: 'Social Campaign: Sheet → ChatGPT → Image → Facebook & Telegram',
+        description: 'Get data from Google Sheets, generate content with ChatGPT, create an image, and publish to Facebook and Telegram.',
+        project: {
+          name: 'Marketing Campaign Template',
+          description: 'A workflow to fetch data from Google Sheets, generate content and images with ChatGPT, and publish to Facebook and Telegram.',
+          status: 'draft',
+          nodes: [
+            {
+              id: 'node-1',
+              type: 'custom',
+              data: {
+                id: 'node-1',
+                type: 'google-sheets',
+                label: 'Get Data from Google Sheets',
+                sublabel: 'Fetch rows for campaign',
+                connectionId: '',
+                spreadsheetId: '',
+                range: '',
+              },
+              status: 'pending',
+              position: { x: 50, y: 250 }
+            },
+            {
+              id: 'node-2',
+              type: 'custom',
+              data: {
+                id: 'node-2',
+                type: 'chatgpt',
+                label: 'Generate Content',
+                sublabel: 'Prompt ChatGPT for campaign text',
+                connectionId: '',
+                prompt: 'Write a social media post for: {{data.node-1.data}}',
+                maxTokens: '150'
+              },
+              status: 'pending',
+              position: { x: 300, y: 150 }
+            },
+            {
+              id: 'node-3',
+              type: 'custom',
+              data: {
+                id: 'node-3',
+                type: 'chatgpt-image',
+                label: 'Generate Image',
+                sublabel: 'Create image from content',
+                connectionId: '',
+                prompt: 'Create an image for: {{data.node-2.data}}',
+              },
+              status: 'pending',
+              position: { x: 550, y: 150 }
+            },
+            {
+              id: 'node-4',
+              type: 'custom',
+              data: {
+                id: 'node-4',
+                type: 'facebook',
+                label: 'Publish to Facebook',
+                sublabel: 'Post content and image',
+                connectionId: '',
+              },
+              status: 'pending',
+              position: { x: 800, y: 100 }
+            },
+            {
+              id: 'node-5',
+              type: 'custom',
+              data: {
+                id: 'node-5',
+                type: 'telegram',
+                label: 'Publish to Telegram',
+                sublabel: 'Send content and image',
+                connectionId: '',
+              },
+              status: 'pending',
+              position: { x: 800, y: 250 }
+            }
+          ],
+          dataFlowConnections: [
+            { id: 'conn_1_2', sourceNodeId: 'node-1', targetNodeId: 'node-2', label: 'Sheet → ChatGPT' },
+            { id: 'conn_2_3', sourceNodeId: 'node-2', targetNodeId: 'node-3', label: 'Text → Image' },
+            { id: 'conn_2_4', sourceNodeId: 'node-2', targetNodeId: 'node-4', label: 'Text → Facebook' },
+            { id: 'conn_3_4', sourceNodeId: 'node-3', targetNodeId: 'node-4', label: 'Image → Facebook' },
+            { id: 'conn_2_5', sourceNodeId: 'node-2', targetNodeId: 'node-5', label: 'Text → Telegram' },
+            { id: 'conn_3_5', sourceNodeId: 'node-3', targetNodeId: 'node-5', label: 'Image → Telegram' },
+          ],
+          nodePositions: [
+            { nodeId: 'node-1', x: 50, y: 250 },
+            { nodeId: 'node-2', x: 300, y: 150 },
+            { nodeId: 'node-3', x: 550, y: 150 },
+            { nodeId: 'node-4', x: 800, y: 100 },
+            { nodeId: 'node-5', x: 800, y: 250 },
+          ]
+        }
+      }
+    ]
+  }
+];
+
 const ProjectManagement = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -132,9 +238,22 @@ const ProjectManagement = () => {
     }
   };
 
+  // Add a handler to use a template
+  const handleUseTemplate = (template) => {
+    setNewProject({
+      name: template.project.name,
+      description: template.project.description,
+      status: template.project.status || 'draft',
+      nodes: template.project.nodes,
+      dataFlowConnections: template.project.dataFlowConnections,
+      nodePositions: template.project.nodePositions,
+    });
+    setShowCreateModal(true);
+  };
+
   return (
     <Layout>
-      <div className="px-8 w-full">
+      <div className="px-8 w-full min-h-full overflow-auto">
         <Space size="lg">
           {/* Header */}
           <Flex justify="between" align="center">
@@ -181,6 +300,35 @@ const ProjectManagement = () => {
               </Flex>
             </Flex>
           </Card>
+
+          {/* Project Templates Section */}
+          <Space size="md">
+            <Heading level={2} size="xl" weight="semibold" color="default">
+              Project Templates
+            </Heading>
+            {PROJECT_TEMPLATES.map(category => (
+              <div key={category.category} className="mb-6">
+                <Heading level={3} size="lg" weight="medium" color="default" className="mb-2">
+                  {category.category}
+                </Heading>
+                <div className="flex flex-wrap gap-4">
+                  {category.templates.map(template => (
+                    <Card key={template.id} className="p-4 flex flex-col items-start w-96">
+                      <Heading level={4} size="md" weight="semibold" className="mb-1">
+                        {template.name}
+                      </Heading>
+                      <Paragraph size="sm" color="secondary" className="mb-2">
+                        {template.description}
+                      </Paragraph>
+                      <Button onClick={() => handleUseTemplate(template)}>
+                        Use Template
+                      </Button>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </Space>
 
           {/* Projects Grid */}
           <Grid cols={3} gap="lg" className="md:grid-cols-2 lg:grid-cols-3">
