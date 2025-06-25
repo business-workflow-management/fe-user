@@ -42,8 +42,7 @@ const ProjectWorkspace = () => {
     getProjectsByUserId, 
     getCurrentProjectByUserId,
     setCurrentProject, 
-    updateProjectNodes, 
-    updateReactFlowEdges,
+    updateProject,
     addWorkflowHistory,
   } = useProjectStore();
   
@@ -86,8 +85,12 @@ const ProjectWorkspace = () => {
   const handleSave = async () => {
     if (!currentProject || !user?.id) return;
     setIsSaving(true);
-    await updateProjectNodes(user.id, currentProject.id, nodes);
-    await updateReactFlowEdges(user.id, currentProject.id, edges);
+    const dataFlowConnections = reactFlowEdgesToDataFlow(edges);
+    await updateProject(user.id, currentProject.id, {
+      ...currentProject,
+      nodes,
+      dataFlowConnections,
+    });
     setTimeout(() => setIsSaving(false), 1500);
   };
 

@@ -55,7 +55,7 @@ const ProjectManagement = () => {
     if (user?.id) {
       fetchProjects(user.id);
     }
-  }, [user, fetchProjects]);
+  }, [user?.id, fetchProjects]);
 
   const filteredProjects = projects.filter(Boolean).filter(project => {
     const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

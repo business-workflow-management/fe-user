@@ -22,11 +22,12 @@ const useProjectStore = create((set, get) => ({
 
   fetchProjects: async (userId) => {
     try {
+      console.log('fetchProjects', userId);
       const data = await projectService.getProjects();
       set((state) => ({
         projectsByUserId: {
           ...state.projectsByUserId,
-          [userId]: data.projects || [],
+          [userId]: data || [],
         },
       }));
     } catch (e) {}
@@ -38,7 +39,7 @@ const useProjectStore = create((set, get) => ({
       set((state) => ({
         currentProjectByUserId: {
           ...state.currentProjectByUserId,
-          [userId]: data.project || null,
+          [userId]: data || null,
         },
       }));
     } catch (e) {}
@@ -46,14 +47,14 @@ const useProjectStore = create((set, get) => ({
 
   createProject: async (userId, projectData) => {
     try {
-      const data = await projectService.createProject(projectData);
+      const project = await projectService.createProject(projectData);
       set((state) => ({
         projectsByUserId: {
           ...state.projectsByUserId,
-          [userId]: [...(state.projectsByUserId[userId] || []), data.project],
+          [userId]: [...(state.projectsByUserId[userId] || []), project],
         },
       }));
-      return data.project;
+      return project;
     } catch (e) { return null; }
   },
 
@@ -63,7 +64,7 @@ const useProjectStore = create((set, get) => ({
       set((state) => {
         const userProjects = state.projectsByUserId[userId] || [];
         const newProjects = userProjects.map((p) =>
-          p.id === projectId ? data.project : p
+          p.id === projectId ? data : p
         );
         return {
           projectsByUserId: {
@@ -72,11 +73,11 @@ const useProjectStore = create((set, get) => ({
           },
           currentProjectByUserId: {
             ...state.currentProjectByUserId,
-            [userId]: data.project,
+            [userId]: data,
           },
         };
       });
-      return data.project;
+      return data;
     } catch (e) { return null; }
   },
 
@@ -106,7 +107,7 @@ const useProjectStore = create((set, get) => ({
       set((state) => {
         const userProjects = state.projectsByUserId[userId] || [];
         const newProjects = userProjects.map((p) =>
-          p.id === projectId ? { ...p, history: data.history } : p
+          p.id === projectId ? { ...p, history: data } : p
         );
         return {
           projectsByUserId: {
@@ -117,7 +118,7 @@ const useProjectStore = create((set, get) => ({
             ...state.currentProjectByUserId,
             [userId]: {
               ...state.currentProjectByUserId[userId],
-              history: data.history,
+              history: data,
             },
           },
         };
