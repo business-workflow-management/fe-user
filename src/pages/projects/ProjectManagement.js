@@ -150,6 +150,7 @@ const ProjectManagement = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(null);
   const [newProject, setNewProject] = useState({
     name: '',
     description: '',
@@ -162,6 +163,20 @@ const ProjectManagement = () => {
       fetchProjects(user.id);
     }
   }, [user?.id, fetchProjects]);
+
+  // Close options menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showOptionsMenu && !event.target.closest('.options-menu')) {
+        setShowOptionsMenu(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showOptionsMenu]);
 
   const filteredProjects = projects.filter(Boolean).filter(project => {
     const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -203,13 +218,30 @@ const ProjectManagement = () => {
     }
   };
 
-  const handleDeleteProject = () => {
+  const handleDeleteProject = async () => {
     if (selectedProject && user?.id) {
-      deleteProject(user.id, selectedProject.id);
-      setShowDeleteModal(false);
-      setSelectedProject(null);
-      toast.success('Project deleted successfully!');
+      try {
+        await deleteProject(user.id, selectedProject.id);
+        setShowDeleteModal(false);
+        setSelectedProject(null);
+        setShowOptionsMenu(null);
+        toast.success('Project deleted successfully!');
+      } catch (error) {
+        console.error('Failed to delete project:', error);
+        toast.error('Failed to delete project. Please try again.');
+      }
     }
+  };
+
+  const handleOptionsClick = (project, event) => {
+    event.stopPropagation();
+    setShowOptionsMenu(showOptionsMenu === project.id ? null : project.id);
+  };
+
+  const handleDeleteClick = (project) => {
+    setSelectedProject(project);
+    setShowDeleteModal(true);
+    setShowOptionsMenu(null);
   };
 
   const getStatusColor = (status) => {
@@ -253,7 +285,7 @@ const ProjectManagement = () => {
 
   return (
     <Layout>
-      <div className="px-8 w-full min-h-full overflow-auto">
+      <div className="px-8 w-full">
         <Space size="lg">
           {/* Header */}
           <Flex justify="between" align="center">
@@ -313,7 +345,7 @@ const ProjectManagement = () => {
                 </Heading>
                 <div className="flex flex-wrap gap-4">
                   {category.templates.map(template => (
-                    <Card key={template.id} className="p-4 flex flex-col items-start w-96">
+                    <Card key={template.id} className="p-4 flex flex-col items-start w-full sm:w-80 lg:w-96">
                       <Heading level={4} size="md" weight="semibold" className="mb-1">
                         {template.name}
                       </Heading>
@@ -360,12 +392,27 @@ const ProjectManagement = () => {
                         </Flex>
                       </Flex>
                     </Flex>
-                    <button
-                      onClick={() => setSelectedProject(project)}
-                      className="p-1 text-gray-400 hover:text-gray-600"
-                    >
-                      <MoreVertical size={16} />
-                    </button>
+                    <div className="relative flex-shrink-0 ml-2">
+                      <button
+                        onClick={(event) => handleOptionsClick(project, event)}
+                        className="p-1 text-gray-400 hover:text-gray-600 options-menu rounded hover:bg-gray-100"
+                      >
+                        <MoreVertical size={16} />
+                      </button>
+                      
+                      {/* Options Dropdown */}
+                      {showOptionsMenu === project.id && (
+                        <div className="absolute right-0 top-8 z-10 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[120px] options-menu">
+                          <button
+                            onClick={() => handleDeleteClick(project)}
+                            className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center"
+                          >
+                            <Trash2 size={14} className="mr-2" />
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </Flex>
                   
                   <Flex justify="between" align="center" className="mt-4">
@@ -373,14 +420,6 @@ const ProjectManagement = () => {
                       {project.nodes?.length || 0} nodes
                     </Paragraph>
                     <Flex gap="sm">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSelectedProject(project)}
-                      >
-                        <Edit size={14} className="mr-1" />
-                        Edit
-                      </Button>
                       <Link to={`/workspace/${project.id}`}>
                         <Button size="sm">
                           <Play size={14} className="mr-1" />

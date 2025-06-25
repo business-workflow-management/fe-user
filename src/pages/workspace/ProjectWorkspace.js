@@ -44,6 +44,7 @@ const ProjectWorkspace = () => {
     setCurrentProject, 
     updateProject,
     addWorkflowHistory,
+    fetchProject,
   } = useProjectStore();
   
   const { getEnvVarsByUserId } = useEnvStore();
@@ -60,7 +61,23 @@ const ProjectWorkspace = () => {
   const [executionResults, setExecutionResults] = useState(null);
   const [showResults, setShowResults] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const reactFlowWrapper = useRef(null);
+
+  // Fetch project by ID when page loads or projectId changes
+  useEffect(() => {
+    if (user?.id && projectId) {
+      setIsLoading(true);
+      fetchProject(user.id, projectId)
+        .then(() => {
+          setIsLoading(false);
+        })
+        .catch((error) => {
+          console.error('Failed to fetch project:', error);
+          setIsLoading(false);
+        });
+    }
+  }, [user?.id, projectId, fetchProject]);
 
   // Set current project from URL param
   useEffect(() => {
@@ -221,7 +238,19 @@ const ProjectWorkspace = () => {
     return (
       <Layout>
         <div className="flex items-center justify-center h-full">
-          <p className="text-gray-500">No project selected</p>
+          {isLoading ? (
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <p className="text-gray-500">Loading project...</p>
+            </div>
+          ) : (
+            <div className="text-center">
+              <p className="text-gray-500 mb-4">Project not found</p>
+              <Button onClick={() => navigate('/projects')}>
+                Back to Projects
+              </Button>
+            </div>
+          )}
         </div>
       </Layout>
     );
