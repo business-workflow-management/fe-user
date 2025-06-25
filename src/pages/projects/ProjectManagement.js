@@ -49,7 +49,7 @@ const ProjectManagement = () => {
     description: '',
   });
 
-  const projects = getProjectsByUserId(user?.id);
+  const projects =  getProjectsByUserId(user?.id);
 
   useEffect(() => {
     if (user?.id) {
@@ -256,7 +256,7 @@ const ProjectManagement = () => {
                 <Heading level={3} size="lg" weight="medium" color="default">
                   No projects found
                 </Heading>
-                <Paragraph size="base" color="secondary">
+                <Paragraph size="base" color="secondary" className="text-center">
                   {searchTerm || filterStatus !== 'all' 
                     ? 'Try adjusting your search or filters'
                     : 'Get started by creating your first project'

@@ -86,11 +86,16 @@ const ProjectWorkspace = () => {
     if (!currentProject || !user?.id) return;
     setIsSaving(true);
     const dataFlowConnections = reactFlowEdgesToDataFlow(edges);
-    await updateProject(user.id, currentProject.id, {
-      ...currentProject,
+    // Only include allowed fields for update
+    const updateData = {
+      name: currentProject.name,
+      description: currentProject.description,
+      status: currentProject.status,
       nodes,
       dataFlowConnections,
-    });
+      nodePositions: currentProject.nodePositions || [],
+    };
+    await updateProject(user.id, currentProject.id, updateData);
     setTimeout(() => setIsSaving(false), 1500);
   };
 
